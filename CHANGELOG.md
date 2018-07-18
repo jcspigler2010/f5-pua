@@ -2,7 +2,7 @@
 ## [1.0.16] 20180718
 ### Changed
 - WebSSH2 updated to v0.2.4 (4f506ad)
-- Changed WebSSH2 virtual, routing, and IP parameters (removed need for tmm route)
+  - Changed WebSSH2 virtual, routing, and IP parameters (removed need for tmm route)
   - changed webssh2 translate-address enabled translate-port enabled
   - removed net 
   - removed `startup` scripts
