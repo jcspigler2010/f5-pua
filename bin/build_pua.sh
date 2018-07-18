@@ -5,7 +5,7 @@
 #
 # Bill Church - bill@f5.com
 #
-scriptversion="1.0.15.2"
+scriptversion="1.0.16"
 
 # If you want to run this in non-interactive mode, download, modify and place pua_config.sh in the
 # same folder as this script on the BIG-IP.
@@ -15,15 +15,13 @@ shopt -s nocasematch
 scriptname=$(basename $0)
 bigipver=$(cat /etc/issue | grep -i BIG-IP | awk '{print $2}')
 workingdir=$(mktemp -d -t pua.XXXXXXXXXX)
-startupurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/bin/startup_script_webssh_commands.sh
-startupfname=startup_script_webssh_commands.sh
 websshurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/bin/BIG-IP-13.1.0.2-ILX-WebSSH2-current.tgz
-websshfname=BIG-IP-13.1.0.2-ILX-WebSSH2-current.tgz
-websshilxname=WebSSH2-0.2.0
+websshfname=BIG-IP-13.1.0.8-ILX-WebSSH2-current.tgz
+websshilxname=WebSSH2-0.2.4
 websshilxplugin=WebSSH_plugin
 ephemeralurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/bin/BIG-IP-ILX-ephemeral_auth-current.tgz
 ephemeralfname=BIG-IP-ILX-ephemeral_auth-current.tgz
-ephemeralilxname=ephemeral_auth-0.2.8
+ephemeralilxname=ephemeral_auth-0.2.15
 ephemeralilxplugin=ephemeral_auth_plugin
 samplecaurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/sample/ca.pua.lab.cer
 samplecafname=ca.pua.lab.cer
@@ -108,7 +106,7 @@ This script will configure a reference implementation of the F5 Privileged User 
 
 You will be prompted for IP addresses for 5 services:
 
-1. WebSSH Proxy - This IP address may not be shared with any other IP on the BIG-IP. This will be the only service with this restriction. This proxy is ultimately called by the APM web top. It’s also important to note that SNAT may not be used on this virtual server. (webssh_proxy)
+1. WebSSH Proxy - This proxy is ultimately called by the APM web top. This IP may be shared with other IPs on the BIG-IP system if the protocol or port (udp/2222) It’s also important to note that SNAT may not be used on this virtual server. (webssh_proxy)
 
 2. RADIUS Proxy – This runs the RADIUS Ephemeral Authentication Service. This IP may be shared with other IPs on the BIG-IP system if the protocol or port (udp/1812) do not conflict. (radius_proxy)
 
@@ -179,35 +177,25 @@ getvip() {
       echo "$servicename = ${fgLtCya}$servicenamevip${fgLtWhi}"
       yesno="y"
     fi
-    if [[ ("$servicenamevip" == "$webssh2vip") && ! ("$servicename" == "WebSSH2") ]]; then
+    if [[ ("$yesno" != "n") && ("$servicenamevip" != "$checkedip") ]]; then
       echo
-      echo
-      tput bel;tput bel;tput bel;tput bel;
-      echo "${fgLtRed}ERROR:${fgLtWhi} $servicename VIP must not equal WEBSSH Service VIP"
-      reprompt="y"
-      yesno="n"
-      echo
-    else
-      if [[ ("$yesno" != "n") && ("$servicenamevip" != "$checkedip") ]]; then
+      echo -n "Checking IP... "
+      output=$(ping -c 1 $servicenamevip 2>&1)
+      if [[ $? -eq 0 ]]; then
+        tput bel;tput bel;tput bel;tput bel;
+        echo "${fgLtRed}[FAILED]${fgLtWhi}"
         echo
-        echo -n "Checking IP... "
-        output=$(ping -c 1 $servicenamevip 2>&1)
-        if [[ $? -eq 0 ]]; then
-          tput bel;tput bel;tput bel;tput bel;
-          echo "${fgLtRed}[FAILED]${fgLtWhi}"
-          echo
-          echo "${fgLtRed}ERROR:${fgLtWhi} IP address $servicenamevip appears to be taken by another host on the network already."
-          echo
-          arp -a $servicenamevip
-          echo
-          echo "Pick a different host or investigate the issue."
-          echo
-          yesno="n"
-          reprompt="y"
-        else
-          echo "${fgLtGrn}[OK]${fgLtWhi}"
-          checkedip=$servicenamevip
-        fi
+        echo "${fgLtRed}ERROR:${fgLtWhi} IP address $servicenamevip appears to be taken by another host on the network already."
+        echo
+        arp -a $servicenamevip
+        echo
+        echo "Pick a different host or investigate the issue."
+        echo
+        yesno="n"
+        reprompt="y"
+      else
+        echo "${fgLtGrn}[OK]${fgLtWhi}"
+        checkedip=$servicenamevip
       fi
     fi
   done
@@ -385,18 +373,18 @@ You can automatcially configure the BIG-IP for RADIUS authentication against its
 RADIUSINFO
 
     tput bel;tput bel
-    echo -n "Do you want to configure this BIG-IP to authenticate against itself for testing purposes (y/N)? "
+    echo -n "Do you want to configure this BIG-IP to authenticate against itself for testing purposes (Y/n)? "
     read -n1 yesno
-    if [ "$yesno" == "y" ]; then
+    if [ "$yesno" != "n" ]; then
       yesno=n
       echo
       echo
-      echo -n "Are you really sure!? (y/N)? "
+      echo -n "Are you really sure!? (Y/n)? "
       read -n1 radiusconfig
       echo
     fi
   fi
-  if [[ ("${radiusconfig}" == "y") ]]; then
+  if [[ ("${radiusconfig}" != "n") ]]; then
     echo
     echo -n "Modifying BIG-IP for RADIUS authentication against itself... "
     cat >$workingdir/radius.tcl <<RADIUS
@@ -547,6 +535,7 @@ servicenamevip=$webssh2vip
 [[ !("$servicenamevip" == "") ]] && defaultip=$servicenamevip
 getvip
 webssh2vip="$servicenamevip"
+defaultip=$servicenamevip
 
 servicename=RADIUS
 servicenamevip=$radiusvip
@@ -576,10 +565,6 @@ getvip
 webtopvip="$servicenamevip"
 defaultip=$servicenamevip
 
-fname=$startupfname
-url=$startupurl
-downloadAndCheck
-
 fname=$websshfname
 url=$websshurl
 downloadAndCheck
@@ -589,13 +574,6 @@ url=$ephemeralurl
 downloadAndCheck
 
 clientsslProfile
-
-echo
-echo -n "Placing $startupfname in /config... "
-output=$((mv $startupfname /config) 2>&1)
-result="$?" 2>&1
-prevline=$(($LINENO-2))
-checkoutput
 
 echo
 echo -n "Placing $websshfname in $ilxarchivedir... "
@@ -682,35 +660,15 @@ prevline=$(($LINENO-2))
 checkoutput
 
 echo
-echo -n "Creating WEBSSH Proxy Service Virtual Server... "
-output=$((tmsh create ltm virtual webssh_proxy { destination $webssh2vip:2222 ip-protocol tcp mask 255.255.255.255 profiles add { clientssl-insecure-compatible { context clientside } tcp { } } source 0.0.0.0/0 translate-address disabled translate-port disabled }) 2>&1)
-result="$?" 2>&1
-prevline=$(($LINENO-2))
-checkoutput
-
-echo
-echo -n "Creating tmm route for Plugin... "
-output=$((tmsh create net route webssh_tmm_route gw 127.1.1.254 network $webssh2vip/32) 2>&1)
-result="$?" 2>&1
-prevline=$(($LINENO-2))
-checkoutput
-
-echo
-echo -n "Installing webssh tmm vip startup script... "
-output=$((bash /config/$startupfname $webssh2vip) 2>&1)
-result="$?" 2>&1
-prevline=$(($LINENO-2))
-checkoutput
-
-#echo -n "Modifying WebSSH2 Workspace config.json... "
-#output=$(jq '.listen.ip = "0.0.0.0"' $ilxarchivedir/../$websshilxname/extensions/WebSSH2/config.json > $ilxarchivedir/../$websshilxname/extensions/WebSSH2/config.json)
-#result="$?" 2>&1
-#prevline=$(($LINENO-2))
-#checkoutput
-
-echo
 echo -n "Creating WebSSH2 Plugin... "
 output=$((tmsh create ilx plugin $websshilxplugin from-workspace $websshilxname extensions { webssh2 { concurrency-mode single ilx-logging enabled  } }) 2>&1)
+result="$?" 2>&1
+prevline=$(($LINENO-2))
+checkoutput
+
+echo
+echo -n "Creating WEBSSH Proxy Service Virtual Server... "
+output=$((tmsh create ltm virtual webssh_proxy { destination $webssh2vip:2222 ip-protocol tcp mask 255.255.255.255 profiles add { clientssl-insecure-compatible { context clientside } f5-tcp-lan { } }  rules { WebSSH_plugin/webssh2_node } source 0.0.0.0/0 translate-address enabled translate-port enabled }) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
@@ -731,14 +689,14 @@ checkoutput
 
 echo
 echo -n "Creating LDAP Proxy Service Virtual Server... "
-output=$((tmsh create ltm virtual ldap_proxy { destination $ldapvip:389 ip-protocol tcp mask 255.255.255.255 profiles add { tcp { } } source-address-translation { type automap } source 0.0.0.0/0 rules { $ephemeralilxplugin/ldap_proxy }}) 2>&1)
+output=$((tmsh create ltm virtual ldap_proxy { destination $ldapvip:389 ip-protocol tcp mask 255.255.255.255 profiles add { f5-tcp-lan { } } source-address-translation { type automap } source 0.0.0.0/0 rules { $ephemeralilxplugin/ldap_proxy }}) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
 echo
 echo -n "Creating LDAPS (ssl) Proxy Service Virtual Server... "
-output=$((tmsh create ltm virtual ldaps_proxy { destination $ldapsvip:636 ip-protocol tcp mask 255.255.255.255 profiles add { tcp { } clientssl { context clientside } serverssl-insecure-compatible { context serverside } } source-address-translation { type automap } source 0.0.0.0/0 rules { $ephemeralilxplugin/ldap_proxy_ssl }}) 2>&1)
+output=$((tmsh create ltm virtual ldaps_proxy { destination $ldapsvip:636 ip-protocol tcp mask 255.255.255.255 profiles add { f5-tcp-lan { } clientssl { context clientside } serverssl-insecure-compatible { context serverside } } source-address-translation { type automap } source 0.0.0.0/0 rules { $ephemeralilxplugin/ldap_proxy_ssl }}) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
