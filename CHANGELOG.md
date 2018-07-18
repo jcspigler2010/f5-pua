@@ -1,4 +1,16 @@
 # Changelog
+## [1.0.16] 20180718
+### Changed
+- WebSSH2 updated to v0.2.4 (4f506ad)
+- Changed WebSSH2 virtual, routing, and IP parameters (removed need for tmm route)
+  - changed webssh2 translate-address enabled translate-port enabled
+  - removed net 
+  - removed `startup` scripts
+  - WebSSH2 Proxy no longer requires it's own IP address
+  - default answer for RADIUS Test option is now yes, it still asks "Are you sure" however defaults to yes as well.
+- incremented ephemeral_auth version to reflect proper version (4f506ad)
+- all virtual servers now utilize the `f5-tcp-lan` profile by default (consistent with `pua_webtop` vs). (4f506ad)
+
 ## [1.0.15.2] 20180509
 ### Changed
 - Disable requirement for LTM provisioning
