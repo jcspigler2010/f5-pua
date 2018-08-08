@@ -5,7 +5,7 @@ solution. The only requirements are a running and licensed system ("Active"), in
 
 You will be prompted for IP addresses for 5 services:
 
-1. WebSSH Proxy - This IP address may not be shared with any other IP on the BIG-IP. This will be the only service with this restriction. This proxy is ultimately called by the APM web top. It’s also important to note that SNAT may not be used on this virtual server. (webssh_proxy)
+1. WebSSH Proxy - This IP may be shared with other IPs on the BIG-IP system if the protocol/port (tcp/2222) do not conflict. This proxy is ultimately called by the APM web top. It’s also important to note that SNAT may not be used on this virtual server. (webssh_proxy)
 
 2. RADIUS Proxy – This runs the RADIUS Ephemeral Authentication Service. This IP may be shared with other IPs on the BIG-IP system if the protocol/port (udp/1812) do not conflict. (radius_proxy)
 
@@ -28,7 +28,7 @@ A file called `pua_config.sh` may be placed in the same directory as `build_pua.
 
 When started, `build_pua.sh` or `build_pua_offline.sh` both check for the existence of this file.
 
-Additionally, most of the variables set in the top of `pua_config.sh` and `pua_config_offline.sh` may be overridden by this file.
+Additionally, most of the variables set in the top of `build_pua.sh` and `build_pua_offline.sh` may be overridden by this file.
 
 # Instructions
 A full guide is available at [PUA Solution Install Guide.docx](https://raw.githubusercontent.com/billchurch/f5-pua/master/docs/PUA%20Solution%20Install%20Guide.docx)
