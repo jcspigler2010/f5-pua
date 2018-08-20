@@ -15,6 +15,10 @@ You will be prompted for IP addresses for 5 services:
 
 5. Web top – This runs the LDAP Ephemeral Authentication Service. This IP may be shared with other IPs on the BIG-IP system if the protocol/port (tcp/443) do not conflict. By default SNAT is disabled for this vs as the WebSSH proxy may not interoperate with SNAT. If you change this option be sure to institute some sort of selective disable option (iRule) when connecting to the webssh_proxy as a portal resource.
 
+6. SSH Proxy (ProxySSH) - This is an SSH proxy utilizing the ProxySSH ILX workspace/plugin. This is a PRE-RELEASE feature for testing purposes. This IP may be shared with other IPs on the BIG-IP system if the protocol/port (tcp/22) do not conflict. (proxy_ssh) This is optional and not installed by default.
+
+7. APM OAuth VIP - This is the OAuth Policy used by the SSH Proxy. Curretnly this is kept separate from the Webtop policy. This IP may be shared with other IPs on the BIG-IP system if the protocol/port (tcp/8443) do not conflict. (apm_oauth) This is optional and not installed by default.
+
 WebSSH, LDAPS, and web top will all be initially configured with a default client-ssl profile, after testing this should be changed to use a legitimate certificate.
 
 A blank APM policy is created and attached to the web top vs “pua_webtop”, this policy will need to be built out for the pua_webtop service to operate correctly.

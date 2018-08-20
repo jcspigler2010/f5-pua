@@ -5,7 +5,7 @@
 #
 # Bill Church - bill@f5.com
 #
-scriptversion="1.0.16"
+scriptversion="1.0.17"
 
 # If you want to run this in non-interactive mode, download, modify and place pua_config.sh in the
 # same folder as this script on the BIG-IP.
@@ -23,11 +23,21 @@ ephemeralurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/bin/BIG-
 ephemeralfname=BIG-IP-ILX-ephemeral_auth-current.tgz
 ephemeralilxname=ephemeral_auth-0.2.15
 ephemeralilxplugin=ephemeral_auth_plugin
+
+proxysshfname=BIG-IP-13.1.1.0-ILX-ProxySSH_PRE-RELEASE-current.tgz
+proxysshilxname=proxyssh-0.2.3
+proxysshilxplugin=proxyssh_plugin
+
 samplecaurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/sample/ca.pua.lab.cer
 samplecafname=ca.pua.lab.cer
 apmpolicyurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/sample/profile-pua_webtop_policy.conf.tar.gz
 apmpolicyfname=profile-pua_webtop_policy.conf.tar.gz
 apmpolicydisplayname="sample_pua_policy"
+
+psshapmpolicyurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/sample/profile-proxyssh_policy.conf.tar.gz
+psshapmpolicyfname=profile-proxyssh_policy.conf.tar.gz
+psshapmpolicydisplayname="proxyssh_oauth"
+
 ilxarchivedir=/var/ilx/workspaces/Common/archive
 provlevel=nominal
 modulesrequired="apm ilx"
@@ -565,6 +575,20 @@ getvip
 webtopvip="$servicenamevip"
 defaultip=$servicenamevip
 
+servicename=ProxySSH
+servicenamevip=$proxysshvip
+[[ !("$servicenamevip" == "") ]] && defaultip=$servicenamevip
+getvip
+proxysshvip="$servicenamevip"
+defaultip=$servicenamevip
+
+servicename=OAuth
+servicenamevip=$oauthvip
+[[ !("$servicenamevip" == "") ]] && defaultip=$servicenamevip
+getvip
+oauthvip="$servicenamevip"
+defaultip=$servicenamevip
+
 fname=$websshfname
 url=$websshurl
 downloadAndCheck
@@ -585,6 +609,13 @@ checkoutput
 echo
 echo -n "Placing $ephemeralfname in $ilxarchivedir... "
 output=$((mv $workingdir/$ephemeralfname $ilxarchivedir/$ephemeralfname) 2>&1)
+result="$?" 2>&1
+prevline=$(($LINENO-2))
+checkoutput
+
+echo
+echo -n "Placing $proxysshfname in $ilxarchivedir... "
+output=$((mv $workingdir/$proxysshfname $ilxarchivedir/$proxysshfname) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
@@ -659,6 +690,44 @@ result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
+echo -n "Importing ProxySSH Workspace... "
+output=$((tmsh create ilx workspace $proxysshilxname from-archive $proxysshfname) 2>&1)
+result="$?" 2>&1
+prevline=$(($LINENO-2))
+checkoutput
+
+echo -n "Backing up ProxySSH config.json... "
+output=$((cp $ilxarchivedir/../$proxysshilxname/extensions/proxyssh/config.json $ilxarchivedir/../$proxysshilxname/extensions/proxyssh/config.bak) 2>&1)
+result="$?" 2>&1
+prevline=$(($LINENO-2))
+checkoutput
+
+# This is tricky, we need to modify jwt.issuer to be the VIP,
+# but there could be comments in that JSON so we need to strip them first
+# but we also don't want to strip URLS, the perl regex was the best method
+# I could find.
+echo -n "Modifying ProxySSH config.json... "
+output=$((cat $ilxarchivedir/../$proxysshilxname/extensions/proxyssh/config.bak | perl -ne 'if (/./) {s{\s*(?://).*|("(?:\\.|[^"])*"|'"'(?:\\\\.|[^'])*'"'|.)}{$1}g;print if /./} else {print}' | /usr/bin/jq ".jwt.issuer=\"https://$oauthvip:8443\"" > $ilxarchivedir/../$proxysshilxname/extensions/proxyssh/config.json) 2>&1)
+result="$?" 2>&1
+prevline=$(($LINENO-2))
+checkoutput
+
+
+
+echo
+echo -n "Creating ProxySSH Plugin... "
+output=$((tmsh create ilx plugin $proxysshilxplugin from-workspace $proxysshilxname extensions { proxyssh { concurrency-mode single ilx-logging enabled  } }) 2>&1)
+result="$?" 2>&1
+prevline=$(($LINENO-2))
+checkoutput
+
+echo
+echo -n "Creating ProxySSH Proxy Service Virtual Server... "
+output=$((tmsh create ltm virtual ssh_proxy { destination $proxysshvip:22 ip-protocol tcp mask 255.255.255.255 profiles add { f5-tcp-lan { } }  rules { $proxysshilxplugin/proxyssh_node } source 0.0.0.0/0 translate-address enabled translate-port enabled }) 2>&1)
+result="$?" 2>&1
+prevline=$(($LINENO-2))
+checkoutput
+
 echo
 echo -n "Creating WebSSH2 Plugin... "
 output=$((tmsh create ilx plugin $websshilxplugin from-workspace $websshilxname extensions { webssh2 { concurrency-mode single ilx-logging enabled  } }) 2>&1)
@@ -668,7 +737,7 @@ checkoutput
 
 echo
 echo -n "Creating WEBSSH Proxy Service Virtual Server... "
-output=$((tmsh create ltm virtual webssh_proxy { destination $webssh2vip:2222 ip-protocol tcp mask 255.255.255.255 profiles add { clientssl-insecure-compatible { context clientside } f5-tcp-lan { } }  rules { WebSSH_plugin/webssh2_node } source 0.0.0.0/0 translate-address enabled translate-port enabled }) 2>&1)
+output=$((tmsh create ltm virtual webssh_proxy { destination $webssh2vip:2222 ip-protocol tcp mask 255.255.255.255 profiles add { clientssl-insecure-compatible { context clientside } f5-tcp-lan { } }  rules { $websshilxplugin/webssh2_node } source 0.0.0.0/0 translate-address enabled translate-port enabled }) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput

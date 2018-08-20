@@ -1,4 +1,9 @@
 # Changelog
+## [1.0.17] 20180820
+### Added
+- ProxySSH integration (PRE-RELEASE). Fixes [#11](../../issues/7).
+  - ProxySSH is a native client feature that allows connections from any SSH client. It is currently a PRE-RELEASE feature.
+  - OAuth VIP to support ProxySSH integration
 ## [1.0.16] 20180718
 ### Changed
 - WebSSH2 updated to v0.2.4 (4f506ad)
