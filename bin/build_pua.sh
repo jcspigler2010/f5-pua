@@ -712,8 +712,6 @@ result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-
-
 echo
 echo -n "Creating ProxySSH Plugin... "
 output=$((tmsh create ilx plugin $proxysshilxplugin from-workspace $proxysshilxname extensions { proxyssh { concurrency-mode single ilx-logging enabled  } }) 2>&1)
@@ -800,6 +798,15 @@ output=$((tmsh create ltm virtual pua_webtop { destination $webtopvip:443 ip-pro
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
+
+# tmsh create ltm virtual ssh_oauth { destination $oauthvip:443 ip-protocol tcp mask 255.255.255.255 profiles add { http { } clientssl { context clientside } rba { } proxyssh_oauth { } f5-tcp-lan { } webacceleration { } httpcompression { } } rules { $proxysshilxplugin/proxyssh } source 0.0.0.0/0 }
+echo
+echo -n "Creating OAuth Virtual Server... "
+output=$((tmsh create ltm virtual ssh_oauth { destination $oauthvip:443 ip-protocol tcp mask 255.255.255.255 profiles add { http { } ppp { } pua-connectivity pua_webtop-clientssl { context clientside } rba { } rewrite-portal { } ${psshapmpolicydisplayname} { } f5-tcp-lan { } webacceleration { } httpcompression { } websso { } } rules { $proxysshilxplugin/proxyssh } source 0.0.0.0/0 }) 2>&1)
+result="$?" 2>&1
+prevline=$(($LINENO-2))
+checkoutput
+
 
 radiusTestOption
 
