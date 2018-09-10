@@ -373,6 +373,7 @@ You can automatcially configure the BIG-IP for RADIUS authentication against its
 RADIUSINFO
 
     tput bel;tput bel
+    radiusconfig="n"
     echo -n "Do you want to configure this BIG-IP to authenticate against itself for testing purposes (Y/n)? "
     read -n1 yesno
     if [ "$yesno" != "n" ]; then
@@ -734,6 +735,7 @@ checkoutput
 
 radiusTestOption
 
+echo
 echo -n "Saving config... "
 output=$((tmsh save /sys config) 2>&1)
 result="$?" 2>&1
