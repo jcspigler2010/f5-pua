@@ -1,5 +1,5 @@
 # Changelog
-## [1.0.16] 20180910
+## [1.0.17] 20180910
 ### Fixed
 - When radiusoption was "n", radiusoption installed anyway, fixed.
 
