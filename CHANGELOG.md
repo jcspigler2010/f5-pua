@@ -1,5 +1,13 @@
 # Changelog
+## [1.0.18] 20180911
+### Changed
+- Updated WebSSH2 to v0.2.5
+### Fixed
+- Properly incremented version
+- When radiusoption was "n", radiusoption installed anyway, fixed.
+
 ## [1.0.17] 20180910
+### Changed
 ### Fixed
 - When radiusoption was "n", radiusoption installed anyway, fixed.
 
