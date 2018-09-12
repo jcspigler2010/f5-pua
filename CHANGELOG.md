@@ -1,4 +1,8 @@
 # Changelog
+## [1.0.19] 20180912
+### Fixed
+- build_pua.sh contained an incorrect URL for WebSSH which would prevent installation from succeeding fixes #17
+
 ## [1.0.18] 20180911
 ### Changed
 - Updated WebSSH2 to v0.2.5

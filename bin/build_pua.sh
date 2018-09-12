@@ -5,7 +5,7 @@
 #
 # Bill Church - bill@f5.com
 #
-scriptversion="1.0.18"
+scriptversion="1.0.19"
 
 # If you want to run this in non-interactive mode, download, modify and place pua_config.sh in the
 # same folder as this script on the BIG-IP.
@@ -15,7 +15,7 @@ shopt -s nocasematch
 scriptname=$(basename $0)
 bigipver=$(cat /etc/issue | grep -i BIG-IP | awk '{print $2}')
 workingdir=$(mktemp -d -t pua.XXXXXXXXXX)
-websshurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/bin/BIG-IP-13.1.0.2-ILX-WebSSH2-current.tgz
+websshurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/bin/BIG-IP-13.1.0.8-ILX-WebSSH2-current.tgz
 websshfname=BIG-IP-13.1.0.8-ILX-WebSSH2-current.tgz
 websshilxname=WebSSH2-0.2.4
 websshilxplugin=WebSSH_plugin
