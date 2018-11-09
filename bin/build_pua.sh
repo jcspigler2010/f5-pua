@@ -131,6 +131,8 @@ read -n1 NUL
 echo
 }
 
+# checks the output of a command to get the status and report back
+# or handle failure
 checkoutput() {
   if [ $result -eq 0 ]; then
     echo "${fgLtGrn}[OK]${fgLtWhi}"
@@ -150,6 +152,8 @@ checkoutput() {
   fi
 }
 
+# get an IP address, verify input, and ping it to do a rudimentary
+# check to see if its being used
 getvip() {
   yesno="n"
   while [ "$yesno" == "n" ]
@@ -202,6 +206,8 @@ getvip() {
   return
 }
 
+# if running in online mode, download required files and see if they've
+# downloaded successfully
 downloadAndCheck() {
   echo
   echo -n "Checking for $fname... "
@@ -234,6 +240,8 @@ downloadAndCheck() {
   fi
 }
 
+# check and see that the appropratie BIG-IP modules are provisioned
+# and offer to provision them if not
 checkProvision() {
   missingmod=""
   echo
@@ -319,6 +327,8 @@ checkProvision() {
   fi
 }
 
+# for offline mode, extract the self-contained support files (ILX plugins, policies
+# certificates, etc...)
 extractArchive () {
   echo
   echo "${fgLtYel}Offline mode detected. Skipping downloads.${fgLtWhi}"
@@ -331,6 +341,7 @@ extractArchive () {
   return
 }
 
+# are we running in interactive mode or automated?
 checkInteractive () {
   if [[ "$noninteractive" == "y" ]]; then
     if [[ ("$webssh2vip" = "") || ("$radiusvip" == "") || ("$ldapvip" == "") || ("$ldapsvip" == "") || ("$" == "") || ("$" == "") ]]; then
@@ -349,6 +360,7 @@ checkInteractive () {
   fi
 }
 
+# Alert on BIG-IP version
 checkVer () {
   if [[ "$bigipver" != "13.1.0.2" ]]; then
     echo
@@ -356,11 +368,14 @@ checkVer () {
     echo
     echo "This script has only been tested with BIG-IP v13.1.0.2."
     echo
+    echo "As long as version is greater that tested this should be fine."
+    echo 
     echo "${fgLtRed}Proceed at your own risk${fgLtWhi}"
     echo
   fi
 }
 
+# Enable BIG-IP RADIUS auth against itself?
 radiusTestOption () {
   if [[ ("$radiusconfig" == "") ]]; then
     fold -s -w $cols <<RADIUSINFO | less --RAW-CONTROL-CHARS -X -F -K -
@@ -434,6 +449,7 @@ SSHTEST
 
 }
 
+# setup clientssl profile
 clientsslProfile () {
   if [[ -f "${script_path}/$samplecafname" ]]; then
     capathandfile="${script_path}/$samplecafname"
@@ -478,6 +494,7 @@ clientsslProfile () {
   fi
 }
 
+# import apm policy
 createAPMpolicy () {
   if [[ -f "${script_path}/$apmpolicyfname" ]]; then
     policypathandfile="${script_path}/$apmpolicyfname"
@@ -498,6 +515,7 @@ createAPMpolicy () {
     checkoutput
 }
 
+# the commands. this is where things start to happen
 checkInteractive
 
 [[ ! ("$noninteractive" == "y") ]] && displayIntroduction
@@ -759,7 +777,7 @@ FINALSUMMARY
 
 echo "Task complete."
 echo
-echo "Now go build an APM policy for pua!"
+echo "Now go build an APM policy for PUA!"
 
 exit 0
 

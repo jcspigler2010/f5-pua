@@ -1,4 +1,15 @@
 # Changelog
+## [1.0.20] 20181109
+### Changed
+- WebSSH2 v0.2.6
+  - Reauth function, not exactly relevant to PUA use-case
+  - `options.challengeButton` enabled
+    - previously this configuration option did nothing, this now enables the Credentials button site-wide regardless of the `allowreplay` header value
+  - Updated debug module to v4
+- Ephemeral Auth v0.2.16
+  - GenCred Feature see issue [#19](../../issues/19) for more details
+  - **BREAKING** Removed ephemeral rotate logic from `ACCESS_ACL_ALLOWED` in `APM_ephemeral_auth.tcl`. Should be replaced with a _per request policy_ (PRP).
+
 ## [1.0.19] 20180912
 ### Fixed
 - build_pua.sh contained an incorrect URL for WebSSH which would prevent installation from succeeding fixes #17
