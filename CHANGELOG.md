@@ -1,4 +1,10 @@
 # Changelog
+## [1.0.21] 20190211
+### Fixes
+- Ephemeral_Auth: LDAP escape characters causing invalid logins [#11](../../issues/21)
+- Ephemeral_Auth: LDAP DNs over 128 characters causing exception messages in /var/log/ltm [#12](../../issues/22)
+  - tested to 463 characters
+
 ## [1.0.20] 20181109
 ### Changed
 - WebSSH2 v0.2.6
