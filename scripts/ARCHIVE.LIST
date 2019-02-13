@@ -2,7 +2,6 @@ BIG-IP-13.1.0.8-ILX-WebSSH2-current.tgz
 BIG-IP-13.1.0.8-ILX-WebSSH2-current.tgz.sha256
 BIG-IP-ILX-ephemeral_auth-current.tgz
 BIG-IP-ILX-ephemeral_auth-current.tgz.sha256
-build_pua.sh
 ca.pua.lab.cer
 ca.pua.lab.cer.sha256
 profile-pua_webtop_policy.conf.tar.gz

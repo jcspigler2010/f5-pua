@@ -1,4 +1,8 @@
 # Changelog
+## [1.0.22] 20190212
+### Changes
+- Distribution changes only. Moved from seperate online/offline versions of the script to just the "offline" with embedded workspaces. Shouldn't really mean anything for anyone, just noting the change for past users in case they are looking for the "offline" version. Now `build_pua.(zip|sh)` is the offline and only version.
+
 ## [1.0.21] 20190211
 ### Fixes
 - Ephemeral_Auth: LDAP escape characters causing invalid logins [#11](../../issues/21)

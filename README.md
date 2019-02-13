@@ -19,24 +19,27 @@ WebSSH, LDAPS, and web top will all be initially configured with a default clien
 
 A blank APM policy is created and attached to the web top vs “pua_webtop”, this policy will need to be built out for the pua_webtop service to operate correctly.
 
+# A Note About Previous Versions
+Previously there was a seperate "online" and "offline" scripts. The "online" version has been eliminated and the "offline" version is now, simply, `build_pua.(sh|zip)`.
+
 # RADIUS Testing
 
 The BIG-IP administrative interface can be configured to authenticate against itself for testing. This will allow “admin” and anyone using the test account “testuser” with ANY password to authenticate as a guest to the GUI or SSH. If you enable this option, instructions will be provided at the end of this script for testing.
 
 # Non-interactive mode
-A file called `pua_config.sh` may be placed in the same directory as `build_pua.sh` or `build_pua_offline.sh` to fully automate the install, or provide defaults for a "semi-automatic" deployment. See [pua_config.sh](https://github.com/billchurch/f5-pua/blob/master/pua_config.sh) as an example.
+A file called `pua_config.sh` may be placed in the same directory as `build_pua.sh` to fully automate the install, or provide defaults for a "semi-automatic" deployment. See [pua_config.sh](https://github.com/billchurch/f5-pua/blob/master/pua_config.sh) as an example.
 
-When started, `build_pua.sh` or `build_pua_offline.sh` both check for the existence of this file.
+When started, `build_pua.sh` checks for the existence of this file.
 
-Additionally, most of the variables set in the top of `build_pua.sh` and `build_pua_offline.sh` may be overridden by this file.
+Additionally, most of the variables set in the top of `build_pua.sh` may be overridden by this file.
 
 # Instructions
 A full guide is available at [PUA Solution Install Guide.docx](https://raw.githubusercontent.com/billchurch/f5-pua/master/docs/PUA%20Solution%20Install%20Guide.docx)
 
 - Configure a BIG-IP with VLAN and self IP
-- download [build_pua_offline.zip](https://github.com/billchurch/f5-pua/blob/master/build_pua.zip) and copy to BIG-IP
-- unzip `build_pua_offline.zip`
-- run `bash build_pua_offline.sh`
+- download [build_pua.zip](https://github.com/billchurch/f5-pua/blob/master/build.zip) and copy to BIG-IP
+- unzip `build_pua.zip`
+- run `bash build_pua.sh`
 - follow the directions
 - build out/customize APM policy
 - profit?
@@ -47,9 +50,9 @@ Don't try to download the `.sh` files... Your OS will mess those bash scripts up
 
 # Mac and Linux Users
 
-Feel free to download [build_pua.sh](https://github.com/billchurch/f5-pua/blob/master/bin/build_pua.sh) and [build_pua_offline.sh](https://github.com/billchurch/f5-pua/blob/master/bin/build_pua_offline.sh) directly and save yourself a step... Go nuts!
+Feel free to download [build_pua.sh](https://github.com/billchurch/f5-pua/blob/master/bin/build_pua.sh) directly and save yourself a step... Go nuts!
 
 # Folders
 **scripts/** - my maintance scripts for building out these packages, they won't help you a bit
 
-**bin/** - deployment folder which is either referenced by these scripts `build_pua.(sh|zip)` or embedded in them `build_pua_offline.(sh|zip)`. You won't need anything from here usually...
+**bin/** - deployment folder which is embedded in `build_pua.(sh|zip)`. You won't need anything from here usually...
