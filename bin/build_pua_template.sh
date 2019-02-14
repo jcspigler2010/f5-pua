@@ -5,27 +5,26 @@
 #
 # Bill Church - bill@f5.com
 #
-scriptversion="1.0.22"
+scriptversion="1.0.23"
 
 # If you want to run this in non-interactive mode, download, modify and place pua_config.sh in the
 # same folder as this script on the BIG-IP.
+#
+# For more information, see https://github.com/billchurch/f5-pua
 
 shopt -s nocasematch
 
 scriptname=$(basename $0)
 bigipver=$(cat /etc/issue | grep -i BIG-IP | awk '{print $2}')
 workingdir=$(mktemp -d -t pua.XXXXXXXXXX)
-websshurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/bin/BIG-IP-13.1.0.8-ILX-WebSSH2-current.tgz
+ucsbackupfile=$(mktemp -u before-pua-$scriptversion-XXXX)
 websshfname=BIG-IP-13.1.0.8-ILX-WebSSH2-current.tgz
 websshilxname=WebSSH2-0.2.7
 websshilxplugin=WebSSH_plugin
-ephemeralurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/bin/BIG-IP-ILX-ephemeral_auth-current.tgz
 ephemeralfname=BIG-IP-ILX-ephemeral_auth-current.tgz
 ephemeralilxname=ephemeral_auth-0.2.17
 ephemeralilxplugin=ephemeral_auth_plugin
-samplecaurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/sample/ca.pua.lab.cer
 samplecafname=ca.pua.lab.cer
-apmpolicyurl=https://raw.githubusercontent.com/billchurch/f5-pua/master/sample/profile-pua_webtop_policy.conf.tar.gz
 apmpolicyfname=profile-pua_webtop_policy.conf.tar.gz
 apmpolicydisplayname="sample_pua_policy"
 ilxarchivedir=/var/ilx/workspaces/Common/archive
@@ -206,23 +205,14 @@ getvip() {
   return
 }
 
-# if running in online mode, download required files and see if they've
-# downloaded successfully
-downloadAndCheck() {
+# Check required files and see if they've downloaded successfully
+checkFile() {
   echo
   echo -n "Checking for $fname... "
   if [ ! -f $fname ]; then
-    echo "${fgLtYel}[NOT FOUND]${fgLtWhi}"
-    echo -n "Downloading $fname... "
-    output=$((curl --progress-bar $url > $fname) 2>&1)
-    result="$?" 2>&1
-    prevline=$(($LINENO-2))
-    checkoutput
-    echo -n "Downloading $fname.sha256... "
-    output=$((curl --progress-bar $url.sha256 > $fname.sha256) 2>&1)
-    result="$?" 2>&1
-    prevline=$(($LINENO-2))
-    checkoutput
+    echo "${fgLtRed}[FAILED]${fgLtWhi}"
+    echo "$fname does not exist. Halting."
+    exit 255
   else
     echo "${fgLtGrn}[OK]${fgLtWhi}"
   fi
@@ -331,8 +321,6 @@ checkProvision() {
 # certificates, etc...)
 extractArchive () {
   echo
-  echo "${fgLtYel}Offline mode detected. Skipping downloads.${fgLtWhi}"
-  echo
   echo -n "Extracting archive "
   output=$((/usr/bin/tail -n+$archive_location ${script_path}/${scriptname} | /usr/bin/base64 -d | /bin/tar xzv -C $workingdir) 2>&1)
   result="$?" 2>&1
@@ -362,11 +350,11 @@ checkInteractive () {
 
 # Alert on BIG-IP version
 checkVer () {
-  if [[ "$bigipver" != "13.1.0.2" ]]; then
+  if [[ "$bigipver" != "13.1.1.2" ]]; then
     echo
     echo "${fgLtRed}WARNING${fgLtWhi}"
     echo
-    echo "This script has only been tested with BIG-IP v13.1.0.2."
+    echo "This script has only been tested with BIG-IP v13.1.1.2."
     echo
     echo "As long as version is greater that tested this should be fine."
     echo 
@@ -471,8 +459,7 @@ clientsslProfile () {
   if [[ ("$sampleca" == "y") ]]; then
     if [[ !("$customca" == "y") ]]; then
       fname=$samplecafname
-      url=$samplecaurl
-      downloadAndCheck
+      checkFile
     fi
     echo -n "Installing CA file ${fgLtCya}${samplecafname}${fgLtWhi} "
     output=$((tmsh install sys crypto cert ${samplecafname} from-local-file ${capathandfile} cert-validators none) 2>&1)
@@ -504,8 +491,7 @@ createAPMpolicy () {
   fi
   if [[ !("$custompolicy" == "y") ]]; then
     fname=$apmpolicyfname
-    url=$apmpolicyurl
-    downloadAndCheck
+    checkFile
   fi
     echo
     echo -n "Importing APM sample profile ${fgLtCya}${apmpolicyfname}${fgLtWhi} "
@@ -541,6 +527,13 @@ if [[ "$archive_location" != "" ]]; then
 fi
 
 echo
+echo -n "Creating UCS ${fgLtCya}$ucsbackupfile${fgLtWhi}, this will take a moment... "
+output=$((tmsh save sys ucs $ucsbackupfile) 2>&1)
+result="$?" 2>&1
+prevline=$(($LINENO-2))
+checkoutput
+
+echo
 echo -n "Adding ILX archive directory "
 output=$((mkdir -p $ilxarchivedir) 2>&1)
 result="$?" 2>&1
@@ -548,6 +541,12 @@ prevline=$(($LINENO-2))
 checkoutput
 
 checkProvision
+
+fname=$websshfname
+checkFile
+
+fname=$ephemeralfname
+checkFile
 
 servicename=WebSSH2
 servicenamevip=$webssh2vip
@@ -583,14 +582,6 @@ servicenamevip=$webtopvip
 getvip
 webtopvip="$servicenamevip"
 defaultip=$servicenamevip
-
-fname=$websshfname
-url=$websshurl
-downloadAndCheck
-
-fname=$ephemeralfname
-url=$ephemeralurl
-downloadAndCheck
 
 clientsslProfile
 
@@ -780,4 +771,3 @@ echo
 echo "Now go build an APM policy for PUA!"
 
 exit 0
-
