@@ -21,13 +21,13 @@ radiusconfig="y"
 # A sample CA is availabale for testing. This should only be utilized on non-production systems."
 sampleca="y"
 
-# placing a CA cert bundle in the same directory as build_pua.sh/build_pua_offline.sh and specifying
+# placing a CA cert bundle in the same directory as build_pua.sh/build_pua.sh and specifying
 # the filename here will automatically install that certificate and associate the file with the
 # pua_webtop-clientssl profile. Must also use sampleca="y"
 # samplecafname=my.ca.cer
 
 # placing an APM policy exported with "ng_export" in the same directory as build_pua.sh/
-# build_pua_offline.sh and specifying the filename here will automatically install that
+# build_pua.sh and specifying the filename here will automatically install that
 # policy in lieu of sample policy
 # apmpolicyfname=my.ca.cer
 # apmpolicydisplayname="my_custom_policy"

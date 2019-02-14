@@ -1,4 +1,9 @@
 # Changelog
+## [1.0.23] 20190214 Happy Valentines Day! 
+### Changes
+- Script now creates a UCS before any operations are done, while this should be a best practice before installing any software, it's done here as a safety measure.
+- Reorder checking of ILX workspaces before asking for IP information
+
 ## [1.0.22] 20190212
 ### Changes
 - Distribution changes only. Moved from seperate online/offline versions of the script to just the "offline" with embedded workspaces. Shouldn't really mean anything for anyone, just noting the change for past users in case they are looking for the "offline" version. Now `build_pua.(zip|sh)` is the offline and only version.
@@ -103,7 +108,7 @@
 - Introduction text
 ## [1.0.5] 20180220
 ### Added
-- Self-extracting "offline" mode. Download build_pua_offline.sh for offline use
+- Self-extracting "offline" mode. Download build_pua.sh for offline use
 ## [1.0.4] 20180220
 ### Changed
 - Fixed typo
