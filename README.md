@@ -20,7 +20,7 @@ WebSSH, LDAPS, and web top will all be initially configured with a default clien
 A blank APM policy is created and attached to the web top vs “pua_webtop”, this policy will need to be built out for the pua_webtop service to operate correctly.
 
 # A Note About Previous Versions
-Previously there was a seperate "online" and "offline" scripts. The "online" version has been eliminated and the "offline" version is now, simply, `build_pua.(sh|zip)`.
+Previously there were seperate "online" and "offline" scripts. The "online" version has been eliminated and the "offline" version is now, simply, `build_pua.(sh|zip)`.
 
 # RADIUS Testing
 
