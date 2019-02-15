@@ -1,7 +1,20 @@
 # Changelog
+## [1.0.24] 20190215
+### Changes
+- Script overwrites workspace archives in /var/ilx/ if they already exist (this really shouldn't happen normally, but does just in case)
+- IP address checking for mgmt now uses `ip show` vs `ifconfig` for future compatibility
+
+### Added
+- On successful completion, /root/.puaversion created with the current version installed. this is for later use
+- upgrade option, -u will allow one to upgrade the workspaces in an exisitng installation. The script first checks to see if the installed version is older than the one in the package. Fixes [#24](../../issues/24)
+- new options
+  - -h / --help - basic help
+  - -u / --upgrade - upgrade exisitng PUA workspaces/plugins
+  - -c / --checkonly - check installed workspace versions against whats included in the package
+
 ## [1.0.23] 20190214 Happy Valentines Day! 
 ### Changes
-- Script now creates a UCS before any operations are done, while this should be a best practice before installing any software, it's done here as a safety measure.
+- Script now creates a UCS before any operations are done, while this should be a best practice before installing any software, it's done here as a safety measure. [#23](../../issues/23)
 - Reorder checking of ILX workspaces before asking for IP information
 
 ## [1.0.22] 20190212
@@ -10,9 +23,11 @@
 
 ## [1.0.21] 20190211
 ### Fixes
-- Ephemeral_Auth: LDAP escape characters causing invalid logins [#11](../../issues/21)
-- Ephemeral_Auth: LDAP DNs over 128 characters causing exception messages in /var/log/ltm [#12](../../issues/22)
-  - tested to 463 characters
+- Ephemeral Auth updated to v0.2.17
+  - Ephemeral_Auth: LDAP escape characters causing invalid logins [#21](../../issues/21)
+  - Ephemeral_Auth: LDAP DNs over 128 characters causing exception messages in /var/log/ltm [#22](../../issues/22)
+    - tested to 463 characters
+- WebSSH2 updated to v0.2.7
 
 ## [1.0.20] 20181109
 ### Changed
@@ -34,12 +49,12 @@
 - Updated WebSSH2 to v0.2.5
 ### Fixed
 - Properly incremented version
-- When radiusoption was "n", radiusoption installed anyway, fixed.
+- When radiusoption was "n", radiusoption installed anyway, fixed
 
 ## [1.0.17] 20180910
 ### Changed
 ### Fixed
-- When radiusoption was "n", radiusoption installed anyway, fixed.
+- When radiusoption was "n", radiusoption installed anyway, fixed
 
 ## [1.0.16] 20180718
 ### Changed
@@ -51,7 +66,7 @@
   - WebSSH2 Proxy no longer requires it's own IP address
   - default answer for RADIUS Test option is now yes, it still asks "Are you sure" however defaults to yes as well.
 - incremented ephemeral_auth version to reflect proper version (4f506ad)
-- all virtual servers now utilize the `f5-tcp-lan` profile by default (consistent with `pua_webtop` vs). (4f506ad)
+- all virtual servers now utilize the `f5-tcp-lan` profile by default (consistent with `pua_webtop` vs) (4f506ad)
 
 ## [1.0.15.2] 20180509
 ### Changed

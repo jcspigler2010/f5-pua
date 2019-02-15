@@ -8,10 +8,10 @@
 
 noninteractive="y" # y or empty for no
 webssh2vip="192.168.20.65" # dedicated IP address
-radiusvip="192.168.20.63" # the next 4 IP addresses can be shared
-ldapvip="192.168.20.63"
-ldapsvip="192.168.20.63"
-webtopvip="192.168.20.64"
+radiusvip="192.168.20.65" # the next 4 IP addresses can be shared
+ldapvip="192.168.20.65"
+ldapsvip="192.168.20.65"
+webtopvip="192.168.20.65"
 
 # RADIUS Testimng option y/n Configure the BIG-IP for RADIUS auth to itself.
 # If used with noninteractive unset, this will not be semi-automatic and will result in

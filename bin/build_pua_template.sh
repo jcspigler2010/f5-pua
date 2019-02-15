@@ -5,7 +5,7 @@
 #
 # Bill Church - bill@f5.com
 #
-scriptversion="1.0.23"
+scriptversion="1.0.24"
 
 # If you want to run this in non-interactive mode, download, modify and place pua_config.sh in the
 # same folder as this script on the BIG-IP.
@@ -19,10 +19,12 @@ bigipver=$(cat /etc/issue | grep -i BIG-IP | awk '{print $2}')
 workingdir=$(mktemp -d -t pua.XXXXXXXXXX)
 ucsbackupfile=$(mktemp -u before-pua-$scriptversion-XXXX)
 websshfname=BIG-IP-13.1.0.8-ILX-WebSSH2-current.tgz
-websshilxname=WebSSH2-0.2.7
+websshilxver=0.2.7
+websshilxname=WebSSH2-$websshilxver
 websshilxplugin=WebSSH_plugin
 ephemeralfname=BIG-IP-ILX-ephemeral_auth-current.tgz
-ephemeralilxname=ephemeral_auth-0.2.17
+ephemeralilxver=0.2.17
+ephemeralilxname=ephemeral_auth-$ephemeralilxver
 ephemeralilxplugin=ephemeral_auth_plugin
 samplecafname=ca.pua.lab.cer
 apmpolicyfname=profile-pua_webtop_policy.conf.tar.gz
@@ -31,6 +33,9 @@ ilxarchivedir=/var/ilx/workspaces/Common/archive
 provlevel=nominal
 modulesrequired="apm ilx"
 configfile="pua_config.sh"
+runhelp=false
+runupgrade=false
+checkonly=false
 cols=$(tput cols)
 
 #colors
@@ -46,6 +51,31 @@ fgLtGry=$(tput bold;tput setaf 8)
 echo ${fgLtWhi}
 clear
 
+# get cli params...
+POSITIONAL=()
+while [[ $# -gt 0 ]]
+do
+key="$1"
+
+case $key in
+  -h|--help)
+  runhelp=true
+  shift
+  ;;
+  -u|--upgrade)
+  runupgrade=true
+  shift
+  ;;
+  -c|--checkonly)
+  checkonly=true
+  shift
+  ;;
+esac
+done
+set -- "${POSITIONAL[@]}" # restore positional parameters
+
+echoNotice () { echo; echo -n "$@"; }
+
 cleanup () {
   # runs on EXIT or CTRL-C
   echo
@@ -57,7 +87,7 @@ trap cleanup EXIT
 
 # dont try to figure it out, just ask bill@f5.com
 defaultip=
-mgmtip=$(ifconfig mgmt | awk '/inet addr/{print substr($2,6)}')
+mgmtip=$(ip addr show mgmt | grep -oP 'inet \K(?:(?:2[0-5]?[0-5]?|[01]?[0-9][0-9]?)\.){3}(?:2[0-5]?[0-5]?|[01]?[0-9][0-9]?)')
 
 read status </var/prompt/ps1
 
@@ -82,6 +112,61 @@ if [[ -f "${script_path}/$configfile" ]]; then
   source ${script_path}/$configfile
 fi
 
+function run_help() {
+fold -s -w $cols <<HELPFILE | less --RAW-CONTROL-CHARS -X -F -K -E
+${fgLtWhi}
+${fgLtYel}F5 Privileged User Authentication Install Script v${scriptversion}${fgLtWhi}
+========================================================
+
+This script will configure a reference implementation of the F5 Privileged User Authentication solution.
+
+Please see ${fgLtBlu}${ulStart}https://github.com/billchurch/f5-pua${ulStop}${fgLtWhi} for more information
+
+${fgLtYel}Usage${fgLtWhi}
+=====
+
+        --help / -h - This notice
+      --update / -u - Update existing installation
+   --checkonly / -c - Check installed versions against this package
+
+HELPFILE
+echo
+}
+
+if [ "$runhelp" == "true" ]; then
+  run_help 
+  exit
+fi
+
+function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
+
+function check_version() {
+  packageversion=$1
+  checkversion=$2
+  installedver=
+  # Get current version of workspace(s) from active plugin(s)
+  echo
+  isinstalled=$(tmsh list ilx plugin one-line | grep -i $checkversion | grep -oP 'staged-directory \K.*[\w]' | wc -l)
+  if [[ ("$isinstalled" == 0) ]]; then
+      echo "Package ${fgLtCya}$checkversion${fgLtWhi} is ${fgLtRed}NOT${fgLtWhi} installed"
+      echo
+      echo "Can't upgrade, aborting..."
+      exit 255
+  fi
+  for directory in `tmsh list ilx plugin one-line | grep -i $checkversion | grep -oP 'staged-directory \K.*[\w]'`
+    do installedver=$(jq -r ".version" $directory/extensions/$checkversion/package.json)
+    echo -n "Package version of ${fgLtCya}$checkversion${fgLtWhi} ($packageversion) is "
+    if version_gt $packageversion $installedver; then
+      echo -n "${fgLtRed}greater than${fgLtWhi} "
+      packagenewer=true
+    else
+      echo -n "${fgLtGrn}less than or equal to${fgLtWhi} "
+      packagenewer=false
+    fi
+    echo "installed version ($installedver)."
+  done
+}
+
 if [[ ("$status" != "Active") ]]; then
   tput bel;tput bel;tput bel;tput bel
   echo
@@ -92,14 +177,13 @@ if [[ ("$status" != "Active") ]]; then
   exit 255
 fi
 
-
 archive_location=$(awk '/^__PUA_ARCHIVE__/ {print NR + 1; exit 0 ; }' ${script_path}/${scriptname})
 
 displayIntroduction () {
 fold -s -w $cols <<INTRODUCTION | less --RAW-CONTROL-CHARS -X -F -K -E
 ${fgLtWhi}
-${fgLtYel}Introduction${fgLtWhi}
-============
+${fgLtYel}F5 Privileged User Authentication Install Script v${scriptversion}${fgLtWhi}
+========================================================
 
 This script will configure a reference implementation of the F5 Privileged User Authentication solution. The only requirements are a running and licensed system ("Active"), initial configuration complete (licensed, VLANs, self IPs), and preferably already provisioned for LTM+APM+ILX. The script will check for and can enable it for you if you wish.
 
@@ -130,14 +214,14 @@ read -n1 NUL
 echo
 }
 
-# checks the output of a command to get the status and report back
-# or handle failure
+# checks the output of a command to get the status and report/handle failure
 checkoutput() {
   if [ $result -eq 0 ]; then
+    # success
     echo "${fgLtGrn}[OK]${fgLtWhi}"
     return
   else
-    #failure
+    # failure
     tput bel;tput bel;tput bel;tput bel
     echo "${fgLtRed}[FAILED]${fgLtWhi}"
     echo -e "\n\n"
@@ -207,6 +291,7 @@ getvip() {
 
 # Check required files and see if they've downloaded successfully
 checkFile() {
+  fname=$1
   echo
   echo -n "Checking for $fname... "
   if [ ! -f $fname ]; then
@@ -309,7 +394,7 @@ checkProvision() {
     else
       tput bel;tput bel;tput bel;tput bel
       echo -e "\n\n"
-      echo "${fgLtRed}ERROR:${fgLtWhi} Refusing to run until modules are provisioned. Please provision LTM APM and ILX"
+      echo "${fgLtRed}ERROR:${fgLtWhi} Refusing to run until modules are provisioned. Please provision at least APM and ILX"
       echo "and run script again."
       echo
       exit 255
@@ -317,8 +402,7 @@ checkProvision() {
   fi
 }
 
-# for offline mode, extract the self-contained support files (ILX plugins, policies
-# certificates, etc...)
+# Extract the self-contained support files (ILX plugins, policies certificates, etc...)
 extractArchive () {
   echo
   echo -n "Extracting archive "
@@ -332,7 +416,7 @@ extractArchive () {
 # are we running in interactive mode or automated?
 checkInteractive () {
   if [[ "$noninteractive" == "y" ]]; then
-    if [[ ("$webssh2vip" = "") || ("$radiusvip" == "") || ("$ldapvip" == "") || ("$ldapsvip" == "") || ("$" == "") || ("$" == "") ]]; then
+    if [[ ("$webssh2vip" = "") || ("$radiusvip" == "") || ("$ldapvip" == "") || ("$ldapsvip" == "") || ("$webtopvip" == "") ]]; then
       echo
       echo "${fgLtRed}ERROR${fgLtWhi}"
       echo
@@ -458,8 +542,7 @@ clientsslProfile () {
   echo
   if [[ ("$sampleca" == "y") ]]; then
     if [[ !("$customca" == "y") ]]; then
-      fname=$samplecafname
-      checkFile
+      checkFile $samplecafname
     fi
     echo -n "Installing CA file ${fgLtCya}${samplecafname}${fgLtWhi} "
     output=$((tmsh install sys crypto cert ${samplecafname} from-local-file ${capathandfile} cert-validators none) 2>&1)
@@ -490,8 +573,7 @@ createAPMpolicy () {
     policypathandfile="${workingdir}/${apmpolicyfname}"
   fi
   if [[ !("$custompolicy" == "y") ]]; then
-    fname=$apmpolicyfname
-    checkFile
+    checkFile $apmpolicyfname
   fi
     echo
     echo -n "Importing APM sample profile ${fgLtCya}${apmpolicyfname}${fgLtWhi} "
@@ -504,19 +586,17 @@ createAPMpolicy () {
 # the commands. this is where things start to happen
 checkInteractive
 
-[[ ! ("$noninteractive" == "y") ]] && displayIntroduction
+[[ ! ("$noninteractive" == "y") && ( ! ("$checkonly" == "true") && ! ("$runupgrade" == "true") ) ]] && displayIntroduction
 
 checkVer
 
-echo
-echo -n "Preparing environment... "
+echoNotice "Preparing environment... "
 output=$((mkdir -p $workingdir) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Changing to $workingdir... "
+echoNotice "Changing to $workingdir... "
 cd $workingdir
 result="$?" 2>&1
 prevline=$(($LINENO-2))
@@ -526,15 +606,15 @@ if [[ "$archive_location" != "" ]]; then
   extractArchive
 fi
 
-echo
-echo -n "Creating UCS ${fgLtCya}$ucsbackupfile${fgLtWhi}, this will take a moment... "
-output=$((tmsh save sys ucs $ucsbackupfile) 2>&1)
-result="$?" 2>&1
-prevline=$(($LINENO-2))
-checkoutput
+if [[ ! ("$checkonly" == "true") ]]; then
+  echoNotice "Creating UCS archive ${fgLtCya}$ucsbackupfile${fgLtWhi}, this will take a moment... "
+  output=$((tmsh save sys ucs $ucsbackupfile) 2>&1)
+  result="$?" 2>&1
+  prevline=$(($LINENO-2))
+  checkoutput
+fi
 
-echo
-echo -n "Adding ILX archive directory "
+echoNotice "Adding ILX archive directory "
 output=$((mkdir -p $ilxarchivedir) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
@@ -542,11 +622,81 @@ checkoutput
 
 checkProvision
 
-fname=$websshfname
-checkFile
+checkFile $websshfname
 
-fname=$ephemeralfname
-checkFile
+checkFile $ephemeralfname
+
+if [ "$runupgrade" == "true" ] || [ "$checkonly" == "true" ]; then
+
+  echo
+  echo "Checking versions..."
+  check_version $websshilxver webssh2
+  if [ "$packagenewer" == "true" ]; then upgradewebssh2=true; fi
+  check_version $ephemeralilxver ephemeral_auth
+  if [ "$packagenewer" == "true" ]; then upgradeephemeralauth=true; fi
+
+
+  if [ "$checkonly" == "true" ]; then exit 255; fi
+
+  echo
+  echo "Doing the upgrade..."
+
+  if [ "$upgradewebssh2" == "true" ]; then
+    echoNotice "Placing $websshfname in $ilxarchivedir... "
+    output=$((mv -f $workingdir/$websshfname $ilxarchivedir/$websshfname) 2>&1)
+    result="$?" 2>&1
+    prevline=$(($LINENO-2))
+    checkoutput
+
+    echoNotice "Importing WebSSH2 Workspace... "
+    output=$((tmsh create ilx workspace $websshilxname from-archive $websshfname) 2>&1)
+    result="$?" 2>&1
+    prevline=$(($LINENO-2))
+    checkoutput
+
+    echoNotice "Modifying WebSSH2 Plugin... "
+    output=$((tmsh modify ilx plugin $websshilxplugin from-workspace $websshilxname extensions { webssh2 { concurrency-mode single ilx-logging enabled  } }) 2>&1)
+    result="$?" 2>&1
+    prevline=$(($LINENO-2))
+    checkoutput
+  fi
+
+  if [ "$upgradeephemeralauth" == "true" ]; then
+    echoNotice "Placing $ephemeralfname in $ilxarchivedir... "
+    output=$((mv -f $workingdir/$ephemeralfname $ilxarchivedir/$ephemeralfname) 2>&1)
+    result="$?" 2>&1
+    prevline=$(($LINENO-2))
+    checkoutput
+
+    echoNotice "Importing Ephemeral Authentication Workspace... "
+    output=$((tmsh create ilx workspace $ephemeralilxname from-archive $ephemeralfname) 2>&1)
+    result="$?" 2>&1
+    prevline=$(($LINENO-2))
+    checkoutput
+
+    echoNotice "Modifying Ephemeral Authentication Workspace... "
+    output=$((tmsh modify ilx workspace $ephemeralilxname node-version 6.9.1) 2>&1)
+    result="$?" 2>&1
+    prevline=$(($LINENO-2))
+    checkoutput
+
+    echoNotice "Modifying Ephemeral Authentication Plugin... "
+    output=$((tmsh modify ilx plugin $ephemeralilxplugin from-workspace $ephemeralilxname extensions { ephemeral_auth { ilx-logging enabled } }) 2>&1)
+    result="$?" 2>&1
+    prevline=$(($LINENO-2))
+    checkoutput
+  fi
+  echo
+  echo "Upgrade Complete."
+  echo
+  echo cp /root/.pua-version /root/.pua-previous
+  echo $scriptversion > /root/.pua-version
+  echo $scriptversion > /root/.pua-upgrade
+
+  exit 0
+  
+fi
+
 
 servicename=WebSSH2
 servicenamevip=$webssh2vip
@@ -585,22 +735,19 @@ defaultip=$servicenamevip
 
 clientsslProfile
 
-echo
-echo -n "Placing $websshfname in $ilxarchivedir... "
-output=$((mv $workingdir/$websshfname $ilxarchivedir/$websshfname) 2>&1)
+echoNotice "Placing $websshfname in $ilxarchivedir... "
+output=$((mv -f $workingdir/$websshfname $ilxarchivedir/$websshfname) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Placing $ephemeralfname in $ilxarchivedir... "
-output=$((mv $workingdir/$ephemeralfname $ilxarchivedir/$ephemeralfname) 2>&1)
+echoNotice "Placing $ephemeralfname in $ilxarchivedir... "
+output=$((mv -f $workingdir/$ephemeralfname $ilxarchivedir/$ephemeralfname) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Creating ephemeral_config data group... "
+echoNotice "Creating ephemeral_config data group... "
 if [[ ("${disabletest}" == "y") ]]; then
   output=$((tmsh create ltm data-group internal ephemeral_config { records add { DEBUG { data 0 } DEBUG_PASSWORD { data 0 } RADIUS_SECRET { data radius_secret } RADIUS_TESTMODE { data 0 } ROTATE { data 0 } pwrulesLen { data 8 } pwrulesLwrCaseMin { data 1 } pwrulesNumbersMin { data 1 } pwrulesPunctuationMin { data 1 } pwrulesUpCaseMin { data 1 } } type string }) 2>&1)
   result="$?" 2>&1
@@ -613,85 +760,73 @@ else
   checkoutput
 fi
 
-echo
-echo -n "Creating ephemeral_LDAP_Bypass data group... "
+echoNotice "Creating ephemeral_LDAP_Bypass data group... "
 output=$((tmsh create ltm data-group internal ephemeral_LDAP_Bypass { records add { "cn=f5 service account,cn=users,dc=mydomain,dc=local" { } cn=administrator,cn=users,dc=mydomain,dc=local { } cn=proxyuser,cn=users,dc=mydomain,dc=local { } } type string }) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Creating ephemeral_RADIUS_Bypass data group... "
+echoNotice "Creating ephemeral_RADIUS_Bypass data group... "
 output=$((tmsh create ltm data-group internal ephemeral_RADIUS_Bypass { type string }) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Creating ephemeral_radprox_host_groups data group... "
+echoNotice "Creating ephemeral_radprox_host_groups data group... "
 output=$((tmsh create ltm data-group internal ephemeral_radprox_host_groups { type string }) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Creating ephemeral_radprox_radius_attributes data group... "
+echoNotice "Creating ephemeral_radprox_radius_attributes data group... "
 output=$((tmsh create ltm data-group internal ephemeral_radprox_radius_attributes { records add { BLUECOAT { data "[['Service-Type', <<<VALUE>>>]]" } CISCO { data "[['Vendor-Specific', 9, [['Cisco-AVPair', 'shell:priv-lvl=<<<VALUE>>>']]]]" } DEFAULT { data "[['Vendor-Specific', 9, [['Cisco-AVPair', 'shell:priv-lvl=<<<VALUE>>>']]]]" } F5 { data "[['Vendor-Specific', 3375, [['F5-LTM-User-Role, <<<VALUE>>>]]]]" } PALOALTO { data "[['Vendor-Specific', 25461, [['PaloAlto-Admin-Role', <<<VALUE>>>]]]]" } } type string }) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Creating ephemeral_radprox_radius_client data group... "
+echoNotice "Creating ephemeral_radprox_radius_client data group... "
 output=$((tmsh create ltm data-group internal ephemeral_radprox_radius_client { type string }) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Importing WebSSH2 Workspace... "
+echoNotice "Importing WebSSH2 Workspace... "
 output=$((tmsh create ilx workspace $websshilxname from-archive $websshfname) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Importing Ephemeral Authentication Workspace... "
+echoNotice "Importing Ephemeral Authentication Workspace... "
 output=$((tmsh create ilx workspace $ephemeralilxname from-archive $ephemeralfname) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Modifying Ephemeral Authentication Workspace... "
+echoNotice "Modifying Ephemeral Authentication Workspace... "
 output=$((tmsh modify ilx workspace $ephemeralilxname node-version 6.9.1) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Creating WebSSH2 Plugin... "
+echoNotice "Creating WebSSH2 Plugin... "
 output=$((tmsh create ilx plugin $websshilxplugin from-workspace $websshilxname extensions { webssh2 { concurrency-mode single ilx-logging enabled  } }) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Creating WEBSSH Proxy Service Virtual Server... "
+echoNotice "Creating WEBSSH Proxy Service Virtual Server... "
 output=$((tmsh create ltm virtual webssh_proxy { destination $webssh2vip:2222 ip-protocol tcp mask 255.255.255.255 profiles add { clientssl-insecure-compatible { context clientside } f5-tcp-lan { } }  rules { WebSSH_plugin/webssh2_node } source 0.0.0.0/0 translate-address enabled translate-port enabled }) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Creating Ephemeral Authentication Plugin... "
+echoNotice "Creating Ephemeral Authentication Plugin... "
 output=$((tmsh create ilx plugin $ephemeralilxplugin from-workspace $ephemeralilxname extensions { ephemeral_auth { ilx-logging enabled } }) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Creating RADIUS Proxy Service Virtual Server... "
+echoNotice "Creating RADIUS Proxy Service Virtual Server... "
 output=$((tmsh create ltm virtual radius_proxy { destination $radiusvip:1812 ip-protocol udp mask 255.255.255.255 profiles add { udp { } } source-address-translation { type automap } source 0.0.0.0/0 rules { $ephemeralilxplugin/radius_proxy }}) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
@@ -704,15 +839,13 @@ result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Creating LDAPS (ssl) Proxy Service Virtual Server... "
+echoNotice "Creating LDAPS (ssl) Proxy Service Virtual Server... "
 output=$((tmsh create ltm virtual ldaps_proxy { destination $ldapsvip:636 ip-protocol tcp mask 255.255.255.255 profiles add { f5-tcp-lan { } clientssl { context clientside } serverssl-insecure-compatible { context serverside } } source-address-translation { type automap } source 0.0.0.0/0 rules { $ephemeralilxplugin/ldap_proxy_ssl }}) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Creating APM connectivity profile... "
+echoNotice "Creating APM connectivity profile... "
 output=$((tmsh create /apm profile connectivity pua-connectivity defaults-from connectivity) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
@@ -720,22 +853,19 @@ checkoutput
 
 createAPMpolicy
 
-echo
-echo -n "Modifying pua APM Portal Resource..."
+echoNotice "Modifying pua APM Portal Resource..."
 output=$((tmsh modify apm resource portal-access sample_pua_policy-webssh_portal application-uri https://${webssh2vip}:2222/ssh/host/${mgmtip} items modify { item { subnet ${webssh2vip}/32 } }) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Applying pua APM Policy..."
+echoNotice "Applying pua APM Policy..."
 output=$((tmsh modify /apm profile access /Common/${apmpolicydisplayname} generation-action increment) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
 checkoutput
 
-echo
-echo -n "Creating Webtop Virtual Server... "
+echoNotice "Creating Webtop Virtual Server... "
 output=$((tmsh create ltm virtual pua_webtop { destination $webtopvip:443 ip-protocol tcp mask 255.255.255.255 profiles add { http { } ppp { } pua-connectivity pua_webtop-clientssl { context clientside } rba { } rewrite-portal { } ${apmpolicydisplayname} { } serverssl-insecure-compatible { context serverside } f5-tcp-lan { } webacceleration { } httpcompression { } websso { } } rules { $ephemeralilxplugin/APM_ephemeral_auth } source 0.0.0.0/0 }) 2>&1)
 #output=$((tmsh create ltm virtual pua_webtop { destination $webtopvip:443 ip-protocol tcp mask 255.255.255.255 profiles add { http rewrite-portal tcp { } pua-connectivity { context clientside } pua_webtop-clientssl { context clientside } serverssl-insecure-compatible { context serverside } } rules { $ephemeralilxplugin/APM_ephemeral_auth } source 0.0.0.0/0 }) 2>&1)
 result="$?" 2>&1
@@ -744,8 +874,7 @@ checkoutput
 
 radiusTestOption
 
-echo
-echo -n "Saving config... "
+echoNotice "Saving config... "
 output=$((tmsh save /sys config) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))
@@ -769,5 +898,6 @@ FINALSUMMARY
 echo "Task complete."
 echo
 echo "Now go build an APM policy for PUA!"
+echo $scriptversion > /root/.pua-version
 
 exit 0

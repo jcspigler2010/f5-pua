@@ -22,6 +22,9 @@ A blank APM policy is created and attached to the web top vs “pua_webtop”, t
 # A Note About Previous Versions
 Previously there was a seperate "online" and "offline" scripts. The "online" version has been eliminated and the "offline" version is now, simply, `build_pua.(sh|zip)`.
 
+# Upgrading
+As of v1.0.24, you may run `build_pua.sh` with the `-u` or `--upgrade` option to upgrade the workspaces of an existing PUA install with the ones incldued in the package. The script will first check to ensure the workspace in the package is newer before upgrading. This feature will most likely only work for sites which used the script, and not sites which used a manual installation. A UCS Archive is taken before any changes are made. There is no prompt before the upgrade takes place.
+
 # RADIUS Testing
 
 The BIG-IP administrative interface can be configured to authenticate against itself for testing. This will allow “admin” and anyone using the test account “testuser” with ANY password to authenticate as a guest to the GUI or SSH. If you enable this option, instructions will be provided at the end of this script for testing.
