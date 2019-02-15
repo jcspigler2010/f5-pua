@@ -6,7 +6,7 @@
 
 ### Added
 - On successful completion, /root/.puaversion created with the current version installed. this is for later use
-- upgrade option, -u will allow one to upgrade the workspaces in an exisitng installation. The script first checks to see if the installed version is older than the one in the package. Fixes [#24](../../issues/24)
+- upgrade option, -u will allow one to upgrade the workspaces in an exisitng installation. The script first checks to see if the installed version is older than the one in the package. Fixes [#25](../../issues/25)
 - new options
   - -h / --help - basic help
   - -u / --upgrade - upgrade exisitng PUA workspaces/plugins
