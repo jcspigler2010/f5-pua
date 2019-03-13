@@ -40,7 +40,7 @@ Additionally, most of the variables set in the top of `build_pua.sh` may be over
 A full guide is available at [PUA Solution Install Guide.docx](https://raw.githubusercontent.com/billchurch/f5-pua/master/docs/PUA%20Solution%20Install%20Guide.docx)
 
 - Configure a BIG-IP with VLAN and self IP
-- download [build_pua.zip](https://github.com/billchurch/f5-pua/blob/master/build.zip) and copy to BIG-IP
+- download [build_pua.zip](https://github.com/billchurch/f5-pua/releases/download/1.0.24/build_pua.zip) and copy to BIG-IP
 - unzip `build_pua.zip`
 - run `bash build_pua.sh`
 - follow the directions
