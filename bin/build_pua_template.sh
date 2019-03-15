@@ -621,7 +621,7 @@ if [[ "$archive_location" != "" ]]; then
 fi
 
 if [[ ("$checkonly" == "false") ]]; then 
-  nobackup = true
+  nobackup=true
 fi
 
 if [[ ( "$nobackup" == "false" ) ]]; then
