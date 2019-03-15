@@ -30,5 +30,7 @@ cp ../scripts/ARCHIVE.LIST * ../sample/* ${workingdir}
 cd ${workingdir}
 tar -cvzf - -T ARCHIVE.LIST | base64 >> build_pua.sh
 zip build_pua.zip build_pua.sh
-cp build_pua.zip build_pua.zip ${script_path}/..
-cp build_pua.sh ${script_path}/../bin
+shasum -a 256 build_pua.zip > build_pua.zip.sha256
+shasum -a 256 build_pua.sh > build_pua.sh.sha256
+cp build_pua.zip* ${script_path}/..
+cp build_pua.sh* ${script_path}/../bin
