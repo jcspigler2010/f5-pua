@@ -1,4 +1,13 @@
 # Changelog
+## [1.0.25] 20190315
+### Changes
+- No ping check on 0.0.0.0 addresses (for catchall type VIPs)
+
+### Addded
+- -n/--nobackup option to not create UCS file, `nobackup=true` in unattended or `pua_config.sh`
+- sha256 for build_pua.zip and build_pua.sh
+- -d/--disabletest option to not ping/check host IPs, `disabletest=true` in unattended or `pua_config.sh`
+
 ## [1.0.24] 20190215
 ### Changes
 - Script overwrites workspace archives in /var/ilx/ if they already exist (this really shouldn't happen normally, but does just in case)

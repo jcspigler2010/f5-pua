@@ -5,7 +5,7 @@
 #
 # Bill Church - bill@f5.com
 #
-scriptversion="1.0.24"
+scriptversion="1.0.25"
 
 # If you want to run this in non-interactive mode, download, modify and place pua_config.sh in the
 # same folder as this script on the BIG-IP.
@@ -36,6 +36,8 @@ configfile="pua_config.sh"
 runhelp=false
 runupgrade=false
 checkonly=false
+nobackup=false
+disabletest=false
 cols=$(tput cols)
 
 #colors
@@ -69,6 +71,15 @@ case $key in
   -c|--checkonly)
   checkonly=true
   shift
+  ;;
+  -n|--nobackup)
+  nobackup=true
+  shift
+  ;;
+  -d|--disabletest)
+  disabletest=true
+  shift
+
   ;;
 esac
 done
@@ -125,16 +136,18 @@ Please see ${fgLtBlu}${ulStart}https://github.com/billchurch/f5-pua${ulStop}${fg
 ${fgLtYel}Usage${fgLtWhi}
 =====
 
-        --help / -h - This notice
-      --update / -u - Update existing installation
-   --checkonly / -c - Check installed versions against this package
+        --help | -h - This notice
+      --update | -u - Update existing installation
+   --checkonly | -c - Check installed versions against this package
+    --nobackup | -n - Does not perform UCS backup
+ --disabletest | -d - Do not perform host IP validation (ping)
 
 HELPFILE
 echo
 }
 
 if [ "$runhelp" == "true" ]; then
-  run_help 
+  run_help
   exit
 fi
 
@@ -264,7 +277,8 @@ getvip() {
       echo "$servicename = ${fgLtCya}$servicenamevip${fgLtWhi}"
       yesno="y"
     fi
-    if [[ ("$yesno" != "n") && ("$servicenamevip" != "$checkedip") ]]; then
+    # MC - ADD Non Interactive Bypass
+    if [[ ("$yesno" != "n") && ("$servicenamevip" != "$checkedip") && ("$noninteractive" == "n")]]; then
       echo
       echo -n "Checking IP... "
       output=$(ping -c 1 $servicenamevip 2>&1)
@@ -441,7 +455,7 @@ checkVer () {
     echo "This script has only been tested with BIG-IP v13.1.1.2."
     echo
     echo "As long as version is greater that tested this should be fine."
-    echo 
+    echo
     echo "${fgLtRed}Proceed at your own risk${fgLtWhi}"
     echo
   fi
@@ -489,7 +503,7 @@ RADIUS
     result="$?" 2>&1
     prevline=$(($LINENO-2))
     checkoutput
-    if [[ !("${disabletest}" == "y") ]]; then
+    if [[ !("${disabletest}" == "true") ]]; then
       echo
       fold -s -w $cols <<RADIUSSUMMARY | less --RAW-CONTROL-CHARS -X -F -K -
 You can test WebSSH2 and Ephemeral authentication without APM configuration now by browsing to:
@@ -504,7 +518,7 @@ RADIUSSUMMARY
     fi
   fi
 
-  if [[ ("${disabletest}" == "y") ]]; then
+  if [[ ("${disabletest}" == "true") ]]; then
     echo
     fold -s -w $cols <<SSHTEST | less --RAW-CONTROL-CHARS -X -F -K -
 You can test WebSSH2 and Ephemeral authentication without APM configuration now by browsing to:
@@ -606,7 +620,12 @@ if [[ "$archive_location" != "" ]]; then
   extractArchive
 fi
 
-if [[ ! ("$checkonly" == "true") ]]; then
+if [[ ("$checkonly" == "false") ]]; then 
+  nobackup = true
+fi
+
+if [[ ( "$nobackup" == "false" ) ]]; then
+  echo "nobackup: $nobackup"
   echoNotice "Creating UCS archive ${fgLtCya}$ucsbackupfile${fgLtWhi}, this will take a moment... "
   output=$((tmsh save sys ucs $ucsbackupfile) 2>&1)
   result="$?" 2>&1
@@ -694,7 +713,7 @@ if [ "$runupgrade" == "true" ] || [ "$checkonly" == "true" ]; then
   echo $scriptversion > /root/.pua-upgrade
 
   exit 0
-  
+
 fi
 
 
@@ -748,7 +767,7 @@ prevline=$(($LINENO-2))
 checkoutput
 
 echoNotice "Creating ephemeral_config data group... "
-if [[ ("${disabletest}" == "y") ]]; then
+if [[ ("${disabletest}" == "true") ]]; then
   output=$((tmsh create ltm data-group internal ephemeral_config { records add { DEBUG { data 0 } DEBUG_PASSWORD { data 0 } RADIUS_SECRET { data radius_secret } RADIUS_TESTMODE { data 0 } ROTATE { data 0 } pwrulesLen { data 8 } pwrulesLwrCaseMin { data 1 } pwrulesNumbersMin { data 1 } pwrulesPunctuationMin { data 1 } pwrulesUpCaseMin { data 1 } } type string }) 2>&1)
   result="$?" 2>&1
   prevline=$(($LINENO-2))
