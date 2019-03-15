@@ -5,7 +5,7 @@
 #
 # Bill Church - bill@f5.com
 #
-scriptversion="1.0.24"
+scriptversion="1.0.25"
 
 # If you want to run this in non-interactive mode, download, modify and place pua_config.sh in the
 # same folder as this script on the BIG-IP.
@@ -36,6 +36,7 @@ configfile="pua_config.sh"
 runhelp=false
 runupgrade=false
 checkonly=false
+nobackup=false
 cols=$(tput cols)
 
 #colors
@@ -68,6 +69,10 @@ case $key in
   ;;
   -c|--checkonly)
   checkonly=true
+  shift
+  ;;
+  nc|--nobackup)
+  nobackup=true
   shift
   ;;
 esac
@@ -125,9 +130,10 @@ Please see ${fgLtBlu}${ulStart}https://github.com/billchurch/f5-pua${ulStop}${fg
 ${fgLtYel}Usage${fgLtWhi}
 =====
 
-        --help / -h - This notice
-      --update / -u - Update existing installation
-   --checkonly / -c - Check installed versions against this package
+        --help | -h - This notice
+      --update | -u - Update existing installation
+   --checkonly | -c - Check installed versions against this package
+    --nobackup | -n - Does not perform UCS backup
 
 HELPFILE
 echo
