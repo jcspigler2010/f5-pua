@@ -134,7 +134,7 @@ echo
 }
 
 if [ "$runhelp" == "true" ]; then
-  run_help 
+  run_help
   exit
 fi
 
@@ -264,7 +264,8 @@ getvip() {
       echo "$servicename = ${fgLtCya}$servicenamevip${fgLtWhi}"
       yesno="y"
     fi
-    if [[ ("$yesno" != "n") && ("$servicenamevip" != "$checkedip") ]]; then
+    # MC - ADD Non Interactive Bypass
+    if [[ ("$yesno" != "n") && ("$servicenamevip" != "$checkedip") && ("$noninteractive" == "n")]]; then
       echo
       echo -n "Checking IP... "
       output=$(ping -c 1 $servicenamevip 2>&1)
@@ -441,7 +442,7 @@ checkVer () {
     echo "This script has only been tested with BIG-IP v13.1.1.2."
     echo
     echo "As long as version is greater that tested this should be fine."
-    echo 
+    echo
     echo "${fgLtRed}Proceed at your own risk${fgLtWhi}"
     echo
   fi
@@ -694,7 +695,7 @@ if [ "$runupgrade" == "true" ] || [ "$checkonly" == "true" ]; then
   echo $scriptversion > /root/.pua-upgrade
 
   exit 0
-  
+
 fi
 
 
