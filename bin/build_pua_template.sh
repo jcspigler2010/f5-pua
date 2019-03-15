@@ -37,6 +37,7 @@ runhelp=false
 runupgrade=false
 checkonly=false
 nobackup=false
+disabletest=false
 cols=$(tput cols)
 
 #colors
@@ -71,9 +72,14 @@ case $key in
   checkonly=true
   shift
   ;;
-  nc|--nobackup)
+  -n|--nobackup)
   nobackup=true
   shift
+  ;;
+  -d|--disabletest)
+  disabletest=true
+  shift
+
   ;;
 esac
 done
@@ -134,6 +140,7 @@ ${fgLtYel}Usage${fgLtWhi}
       --update | -u - Update existing installation
    --checkonly | -c - Check installed versions against this package
     --nobackup | -n - Does not perform UCS backup
+ --disabletest | -d - Do not perform host IP validation (ping)
 
 HELPFILE
 echo
@@ -496,7 +503,7 @@ RADIUS
     result="$?" 2>&1
     prevline=$(($LINENO-2))
     checkoutput
-    if [[ !("${disabletest}" == "y") ]]; then
+    if [[ !("${disabletest}" == "true") ]]; then
       echo
       fold -s -w $cols <<RADIUSSUMMARY | less --RAW-CONTROL-CHARS -X -F -K -
 You can test WebSSH2 and Ephemeral authentication without APM configuration now by browsing to:
@@ -511,7 +518,7 @@ RADIUSSUMMARY
     fi
   fi
 
-  if [[ ("${disabletest}" == "y") ]]; then
+  if [[ ("${disabletest}" == "true") ]]; then
     echo
     fold -s -w $cols <<SSHTEST | less --RAW-CONTROL-CHARS -X -F -K -
 You can test WebSSH2 and Ephemeral authentication without APM configuration now by browsing to:
@@ -613,7 +620,12 @@ if [[ "$archive_location" != "" ]]; then
   extractArchive
 fi
 
-if [[ ! ("$checkonly" == "true") ]]; then
+if [[ ("$checkonly" == "false") ]]; then 
+  nobackup = true
+fi
+
+if [[ ( "$nobackup" == "false" ) ]]; then
+  echo "nobackup: $nobackup"
   echoNotice "Creating UCS archive ${fgLtCya}$ucsbackupfile${fgLtWhi}, this will take a moment... "
   output=$((tmsh save sys ucs $ucsbackupfile) 2>&1)
   result="$?" 2>&1
@@ -755,7 +767,7 @@ prevline=$(($LINENO-2))
 checkoutput
 
 echoNotice "Creating ephemeral_config data group... "
-if [[ ("${disabletest}" == "y") ]]; then
+if [[ ("${disabletest}" == "true") ]]; then
   output=$((tmsh create ltm data-group internal ephemeral_config { records add { DEBUG { data 0 } DEBUG_PASSWORD { data 0 } RADIUS_SECRET { data radius_secret } RADIUS_TESTMODE { data 0 } ROTATE { data 0 } pwrulesLen { data 8 } pwrulesLwrCaseMin { data 1 } pwrulesNumbersMin { data 1 } pwrulesPunctuationMin { data 1 } pwrulesUpCaseMin { data 1 } } type string }) 2>&1)
   result="$?" 2>&1
   prevline=$(($LINENO-2))
