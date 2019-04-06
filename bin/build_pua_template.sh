@@ -5,7 +5,7 @@
 #
 # Bill Church - bill@f5.com
 #
-scriptversion="1.0.25"
+scriptversion="1.0.26-rc1"
 
 # If you want to run this in non-interactive mode, download, modify and place pua_config.sh in the
 # same folder as this script on the BIG-IP.
@@ -885,7 +885,7 @@ prevline=$(($LINENO-2))
 checkoutput
 
 echoNotice "Creating Webtop Virtual Server... "
-output=$((tmsh create ltm virtual pua_webtop { destination $webtopvip:443 ip-protocol tcp mask 255.255.255.255 profiles add { http { } ppp { } pua-connectivity pua_webtop-clientssl { context clientside } rba { } rewrite-portal { } ${apmpolicydisplayname} { } serverssl-insecure-compatible { context serverside } f5-tcp-lan { } webacceleration { } httpcompression { } websso { } } rules { $ephemeralilxplugin/APM_ephemeral_auth } source 0.0.0.0/0 }) 2>&1)
+output=$((tmsh create ltm virtual pua_webtop { destination $webtopvip:443 ip-protocol tcp mask 255.255.255.255 profiles add { http { } ppp { } pua-connectivity pua_webtop-clientssl { context clientside } rba { } rewrite-portal { } ${apmpolicydisplayname} { } serverssl-insecure-compatible { context serverside } f5-tcp-lan { } httpcompression { } websso { } } rules { $ephemeralilxplugin/APM_ephemeral_auth } source 0.0.0.0/0 }) 2>&1)
 #output=$((tmsh create ltm virtual pua_webtop { destination $webtopvip:443 ip-protocol tcp mask 255.255.255.255 profiles add { http rewrite-portal tcp { } pua-connectivity { context clientside } pua_webtop-clientssl { context clientside } serverssl-insecure-compatible { context serverside } } rules { $ephemeralilxplugin/APM_ephemeral_auth } source 0.0.0.0/0 }) 2>&1)
 result="$?" 2>&1
 prevline=$(($LINENO-2))

@@ -1,4 +1,8 @@
 # Changelog
+## [1.0.26] TBD
+### Changes
+- Removed webacceleration profile from pua-webtop VIP
+
 ## [1.0.25] 20190315
 ### Changes
 - No ping check on 0.0.0.0 addresses (for catchall type VIPs)
